@@ -1,11 +1,16 @@
 using System;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class Timer : MonoBehaviour
 {
-    [SerializeField] private float _timer = 60f;
-    [SerializeField] private bool _isRunning = false;
-    public event Action OnTimerEnd;
+    [SerializeField] private float _roundDuration = 60f;
+    [SerializeField] private TextMeshProUGUI timerText;
+    public UnityEvent OnTimeUp;
+
+    private float _timeRemaining;
+    private bool _isRunning = false;
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -13,27 +18,36 @@ public class Timer : MonoBehaviour
         StartTImer();
     }
 
-    private void StartTImer()
-    {
-        _timer = 60f;
-        _isRunning = true;
-    }
-
     // Update is called once per frame
     void Update()
     {
         if (!_isRunning) return;
         
-        _timer -= Time.deltaTime;
-        if (_timer <= 0)
+        _timeRemaining -= Time.deltaTime;
+        UpdateTimerVisual(_timeRemaining);
+        
+        if (_timeRemaining <= 0)
         {
             _isRunning = false;
-            OnTimerEnd?.Invoke();
+            _timeRemaining = 0; 
+            OnTimeUp.Invoke();
         }
     }
     
-    public float GetTimeRemaining()
+    private void StartTImer()
     {
-        return _timer;
+        _timeRemaining = _roundDuration;
+        _isRunning = true;
     }
+    
+    private void UpdateTimerVisual(float secondsLeft)
+    {
+        if (timerText == null) return;
+
+        int mins = Mathf.FloorToInt(secondsLeft / 60f);
+        int secs = Mathf.FloorToInt(secondsLeft % 60f);
+        timerText.text = $"{mins:00}:{secs:00}";    
+    }
+    
+    public float GetTimeRemaining() => _timeRemaining;
 }

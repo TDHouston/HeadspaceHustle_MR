@@ -2,56 +2,61 @@ using UnityEngine;
 
 public class TaskManager : MonoBehaviour
 {
-    public GameObject[] taskZones; // Drag Memory, Impulse, Emotion here
-    private int currentTaskIndex = -1;
+    [SerializeField] private Taskbase[] tasks;
+    [SerializeField] private float taskDuration = 10f;
 
-    public float taskDuration = 10f;
-    private float taskTimer;
-    private bool taskActive = false;
+    private Taskbase _currentTask;
+    private int _currentTaskIndex = -1;
+    private float _taskTimer = 0f;
+    private bool _taskActive = false;
 
     void Start()
     {
-        Timer timer = GetComponent<Timer>();
-        if (timer != null)
-        {
-            timer.OnTimerEnd += HandleTimerEnd;
-        }
-        StartNextTask();
+        _currentTaskIndex = 0;
+        _currentTask = tasks[_currentTaskIndex];
+        _taskActive = false;
     }
 
     void Update()
     {
-        if (!taskActive) return;
+        if (!_taskActive || _currentTask == null) return;
 
-        taskTimer -= Time.deltaTime;
-        if (taskTimer <= 0)
+        _taskTimer -= Time.deltaTime;
+
+        if (_taskTimer <= 0f)
         {
             EndCurrentTask();
             StartNextTask();
         }
     }
 
-    void StartNextTask()
+    public void NotifyTaskStarted(Taskbase task)
     {
-        currentTaskIndex = (currentTaskIndex + 1) % taskZones.Length;
-        GameObject activeZone = taskZones[currentTaskIndex];
-        // Activate visuals / start interaction
-        Debug.Log("Starting task: " + activeZone.name);
-        taskTimer = taskDuration;
-        taskActive = true;
+        if (_currentTask != task) return;
+
+        Debug.Log($"TaskManager: Detected start of task {task.name}");
+        _taskActive = true;
+        _taskTimer = taskDuration;
     }
 
     void EndCurrentTask()
     {
-        GameObject endingZone = taskZones[currentTaskIndex];
-        Debug.Log("Ending task: " + endingZone.name);
-        // Deactivate visuals / reset state
-        taskActive = false;
+        if (_currentTask != null)
+        {
+            _currentTask.EndTask();
+        }
+
+        _taskActive = false;
+        _currentTask = null;
     }
-    
-    void HandleTimerEnd()
+
+    void StartNextTask()
     {
-        Debug.Log("Game Over! No more tasks.");
-        taskActive = false;
+        _currentTaskIndex = (_currentTaskIndex + 1) % tasks.Length;
+        _currentTask = tasks[_currentTaskIndex];
+        _taskActive = false;
+
+        // Do not auto-start the task — it must be manually triggered
+        Debug.Log($"TaskManager: Ready for next task { _currentTask.name } to be started manually.");
     }
 }

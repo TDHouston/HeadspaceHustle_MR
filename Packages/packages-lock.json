@@ -188,7 +188,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.learn.iet-framework": {
-      "version": "4.1.0",
+      "version": "4.1.3",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -427,7 +427,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.xr.meta-openxr": {
-      "version": "2.1.0",
+      "version": "2.1.1",
       "depth": 0,
       "source": "registry",
       "dependencies": {
