@@ -6,18 +6,17 @@ using UnityEngine.UI;
 
 public class MemoryTask : Taskbase
 {
-    [Header("UI")]
+    [Header("UI")] 
     public TextMeshProUGUI displayText;
     public Button startButton;
     public GameObject inputButtonsParent;
-    public Button[] inputButtons; // Buttons A-D assigned in Inspector
 
-    [Header("Sequence Settings")]
+    [Header("Sequence Settings")] 
     public string[] sequenceOptions = { "A", "B", "C", "D" };
     public float showDelay = 1f;
     public Color[] sequenceColors;
 
-    [Header("References")]
+    [Header("References")] 
     public TaskManager taskManager;
 
     private List<string> sequence = new();
@@ -25,36 +24,17 @@ public class MemoryTask : Taskbase
     private bool isInputActive = false;
     private int round = 1;
     private bool isRunning = false;
+    private bool inputCooldown = false;
 
     private void Awake()
     {
-        displayText.text = "";
-        inputButtonsParent.SetActive(false);
-        startButton.gameObject.SetActive(true);
+        ShowStartState();
     }
 
     private void Start()
     {
         startButton.onClick.RemoveAllListeners();
-        startButton.onClick.AddListener(() =>
-        {
-            Debug.Log("Start button pressed.");
-            BeginTask();
-        });
-
-        AssignInputButtons();
-    }
-
-    private void AssignInputButtons()
-    {
-        string[] values = { "A", "B", "C", "D" };
-
-        for (int i = 0; i < inputButtons.Length && i < values.Length; i++)
-        {
-            string value = values[i];
-            inputButtons[i].onClick.RemoveAllListeners();
-            inputButtons[i].onClick.AddListener(() => SubmitInput(value));
-        }
+        startButton.onClick.AddListener(BeginTask);
     }
 
     public override void BeginTask()
@@ -65,6 +45,7 @@ public class MemoryTask : Taskbase
         isInputActive = false;
 
         displayText.text = "";
+        displayText.gameObject.SetActive(false);
         startButton.gameObject.SetActive(false);
         inputButtonsParent.SetActive(false);
 
@@ -81,8 +62,7 @@ public class MemoryTask : Taskbase
         isRunning = false;
         isInputActive = false;
         inputButtonsParent.SetActive(false);
-        displayText.text = "Press Start";
-        startButton.gameObject.SetActive(true);
+        ShowStartState();
     }
 
     private void GenerateSequence(int length)
@@ -96,11 +76,13 @@ public class MemoryTask : Taskbase
     private IEnumerator ShowSequence()
     {
         displayText.text = "";
+        displayText.gameObject.SetActive(false);
         inputButtonsParent.SetActive(false);
         yield return new WaitForSeconds(0.5f);
 
         for (int i = 0; i < sequence.Count; i++)
         {
+            displayText.gameObject.SetActive(true);
             displayText.text = sequence[i];
 
             if (sequenceColors.Length > 0)
@@ -108,19 +90,28 @@ public class MemoryTask : Taskbase
 
             yield return new WaitForSeconds(showDelay);
             displayText.text = "";
+            displayText.gameObject.SetActive(false);
             yield return new WaitForSeconds(0.25f);
         }
 
         displayText.color = Color.white;
         displayText.text = "Repeat!";
+        displayText.gameObject.SetActive(true);
+
         inputIndex = 0;
         isInputActive = true;
         inputButtonsParent.SetActive(true);
+
+        Debug.Log($"Ready for input. Sequence: {string.Join(",", sequence)}");
     }
 
     public void SubmitInput(string input)
     {
-        if (!isInputActive) return;
+        if (!isInputActive || inputCooldown) return;
+
+        Debug.Log($"Submitted input: {input}, Expected: {sequence[inputIndex]} (Index: {inputIndex})");
+
+        StartCoroutine(InputCooldownDelay());
 
         if (input == sequence[inputIndex])
         {
@@ -128,7 +119,7 @@ public class MemoryTask : Taskbase
 
             if (inputIndex >= sequence.Count)
             {
-                displayText.text = $"✅ Round {round} complete!";
+                displayText.text = $"Round {round} complete!";
                 round++;
                 isInputActive = false;
                 inputButtonsParent.SetActive(false);
@@ -137,17 +128,43 @@ public class MemoryTask : Taskbase
         }
         else
         {
-            displayText.text = "❌ Wrong! Try again.";
+            Debug.LogWarning($"Input mismatch: got '{input}', expected '{sequence[inputIndex]}'");
+
+            displayText.text = "Wrong! Try again.";
+            displayText.gameObject.SetActive(true);
             isInputActive = false;
             inputButtonsParent.SetActive(false);
             isRunning = false;
-            startButton.gameObject.SetActive(true);
+
+            // Small delay before re-enabling Start button
+            StartCoroutine(ShowStartAfterDelay(1.5f));
         }
+    }
+
+    private IEnumerator InputCooldownDelay()
+    {
+        inputCooldown = true;
+        yield return new WaitForSeconds(0.25f);
+        inputCooldown = false;
     }
 
     private IEnumerator NextRound()
     {
         yield return new WaitForSeconds(2f);
+        displayText.gameObject.SetActive(false);
         BeginTask();
+    }
+
+    private IEnumerator ShowStartAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        ShowStartState();
+    }
+
+    private void ShowStartState()
+    {
+        displayText.gameObject.SetActive(false);
+        startButton.gameObject.SetActive(true);
+        inputButtonsParent.SetActive(false);
     }
 }
